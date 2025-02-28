@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bình Chọn Ứng Viên</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/vote.css') }}">
+    <script src="{{ url_for('static', filename='script/vote.js') }}" defer></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
+</head>
+<body>
+    <div class="vote-container">
+        <h1>Bình Chọn Ứng Viên</h1>
+        <div class="candidate-grid">
+            <!-- Danh sách ứng viên -->
+            <div class="candidate-card" onclick="selectCandidate(1)">
+                <img src="{{ url_for('static', filename='images/user.png') }}" alt="Ứng viên 1">
+                <p class="candidate-name">Nguyễn Văn A</p>
+            </div>
+            <div class="candidate-card" onclick="selectCandidate(2)">
+                <img src="{{ url_for('static', filename='images/user.png') }}" alt="Ứng viên 2">
+                <p class="candidate-name">Trần Thị B</p>
+            </div>
+            <div class="candidate-card" onclick="selectCandidate(3)">
+                <img src="{{ url_for('static', filename='images/user.png') }}" alt="Ứng viên 3">
+                <p class="candidate-name">Lê Văn C</p>
+            </div>
+            <div class="candidate-card" onclick="selectCandidate(4)">
+                <img src="{{ url_for('static', filename='images/user.png') }}" alt="Ứng viên 4">
+                <p class="candidate-name">Phạm Thị D</p>
+            </div>
+            <div class="candidate-card" onclick="selectCandidate(5)">
+                <img src="{{ url_for('static', filename='images/user.png') }}" alt="Ứng viên 5">
+                <p class="candidate-name">Hoàng Văn E</p>
+            </div>
+            <div class="candidate-card" onclick="selectCandidate(6)">
+                <img src="{{ url_for('static', filename='images/user.png') }}" alt="Ứng viên 6">
+                <p class="candidate-name">Bùi Thị F</p>
+            </div>
+            <div class="candidate-card" onclick="selectCandidate(7)">
+                <img src="{{ url_for('static', filename='images/user.png') }}" alt="Ứng viên 7">
+                <p class="candidate-name">Đỗ Văn G</p>
+            </div>
+            <div class="candidate-card" onclick="selectCandidate(8)">
+                <img src="{{ url_for('static', filename='images/user.png') }}" alt="Ứng viên 8">
+                <p class="candidate-name">Nguyễn Thị H</p>
+            </div>
+        </div>
+        <button class="vote-btn" onclick="submitVote()">Gửi Bình Chọn</button>
+        <button class="home-btn" onclick="goHome()">Quay về Trang Chủ</button>
+    </div>
+</body>
+</html>

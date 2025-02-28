@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Kết Quả Bình Chọn</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/result.css') }}">
+</head>
+<body>
+    <div class="result-container">
+        <h1>Kết Quả Bình Chọn</h1>
+
+        <!-- Biểu đồ cột -->
+        <canvas id="voteChart"></canvas>
+
+        <!-- Nút quay về trang chủ -->
+        <button class="home-btn" onclick="goHome()">Quay về Trang Chủ</button>
+    </div>
+
+    <script>
+        // Dữ liệu giả lập từ backend
+        const voteResults = [
+            { name: "Nguyễn Văn A", votes: 50 },
+            { name: "Trần Thị B", votes: 40 },
+            { name: "Lê Văn C", votes: 35 },
+            { name: "Phạm Thị D", votes: 30 },
+            { name: "Hoàng Văn E", votes: 25 },
+            { name: "Bùi Thị F", votes: 22 },
+            { name: "Đỗ Văn G", votes: 18 },
+            { name: "Nguyễn Thị H", votes: 15 }
+        ];
+
+        // Sắp xếp theo số phiếu (giảm dần)
+        voteResults.sort((a, b) => b.votes - a.votes);
+
+        // Vẽ biểu đồ cột với một màu đỏ
+        const ctx = document.getElementById("voteChart").getContext("2d");
+        new Chart(ctx, {
+            type: "bar",
+            data: {
+                labels: voteResults.map(c => c.name),
+                datasets: [{
+                    label: "Số phiếu",
+                    data: voteResults.map(c => c.votes),
+                    backgroundColor: "#D32F2F" // Màu đỏ cho tất cả cột
+                }]
+            },
+            options: {
+                responsive: true,
+                indexAxis: "y",
+                plugins: {
+                    legend: { display: false }, // Ẩn chú thích
+                    tooltip: { enabled: true } // Hiện tooltip khi hover
+                }
+            }
+        });
+
+        // Chuyển về trang chủ
+        function goHome() {
+            window.location.href = "/home"; // Thay đổi URL theo trang chủ thực tế
+        }
+    </script>
+</body>
+</html>

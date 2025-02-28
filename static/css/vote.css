@@ -1,0 +1,105 @@
+/* Reset */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    font-family: Arial, sans-serif;
+}
+/* Background */
+body {
+    background: #fee4a0; /* Vàng pastel */
+
+}
+/* Container chính */
+.vote-container {
+    margin-top: 50px; /* Tăng khoảng cách từ phía trên */
+    max-width: 800px;
+    margin-left: auto;
+    margin-right: auto;
+    background: white;
+    padding: 20px;
+    border-radius: 10px;
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+    text-align: center;
+}
+
+
+/* Tiêu đề */
+h1 {
+    color: #D32F2F;
+    margin-bottom: 20px;
+}
+
+/* Grid danh sách ứng viên */
+.candidate-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: 15px;
+    justify-content: center;
+}
+
+/* Card ứng viên */
+.candidate-card {
+    background: #fff;
+    border-radius: 8px;
+    padding: 10px;
+    text-align: center;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+    cursor: pointer;
+    transition: transform 0.3s, box-shadow 0.3s;
+}
+
+.candidate-card:hover {
+    transform: scale(1.05);
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
+}
+
+/* Ảnh ứng viên */
+.candidate-card img {
+    width: 100px;
+    height: 100px;
+    border-radius: 50%;
+    margin-bottom: 8px;
+    border: 3px solid transparent;
+    transition: border-color 0.3s;
+}
+
+/* Tên ứng viên */
+.candidate-name {
+    font-weight: bold;
+    color: #333;
+}
+
+/* Ứng viên được chọn */
+.candidate-card.selected img {
+    border-color: #D32F2F;
+    background: #ffe6e6;
+}
+
+/* Nút gửi bình chọn */
+.vote-btn {
+    margin-top: 20px; /* Khoảng cách với phần tử phía trên */
+    background: #fee4a0;
+    color: #D32F2F;
+    padding: 8px 15px;
+    border-radius: 5px;
+    cursor: pointer;
+    margin-left: 5px;
+    margin-right: 5px;
+    transition: 0.3s;
+    font-weight: bold;
+}
+
+/* Nút quay về trang chủ */
+.home-btn {
+    margin-top: 20px; /* Khoảng cách với phần tử phía trên */
+    background: #fee4a0;
+    color: #D32F2F;
+    padding: 8px 15px;
+    border-radius: 5px;
+    cursor: pointer;
+    margin-left: 5px;
+    margin-right: 5px;
+    transition: 0.3s;
+    font-weight: bold;
+}

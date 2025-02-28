@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hệ Thống Bỏ Phiếu</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/index.css') }}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
+</head>
+<body>
+    <h1 class="main-title">HỆ THỐNG BỎ PHIẾU</h1>
+    <p class="subtitle">Ứng dụng công nghệ Blockchain để đảm bảo tính minh bạch và bảo mật</p>
+
+    <div class="auth-container">
+        <div class="tabs">
+            <button id="login-tab" class="tab active" onclick="switchForm('login')">ĐĂNG NHẬP</button>
+            <button id="register-tab" class="tab" onclick="switchForm('register')">ĐĂNG KÝ</button>
+        </div>
+
+        <!-- FORM ĐĂNG NHẬP -->
+        <div id="login-form">
+            <form method="POST">
+                <label for="login-phone">Số điện thoại</label>
+                <input type="text" id="login-phone" name="phone" required>
+
+                <label for="login-password">Mật khẩu</label>
+                <div class="password-wrapper">
+                    <input type="password" id="login-password" name="password" required>
+                    <i class="fa fa-eye password-icon" onclick="togglePassword('login-password')"></i>
+                </div>
+                
+                <button type="submit" class="auth-button">ĐĂNG NHẬP</button>
+            </form>
+        </div>
+
+        <!-- FORM ĐĂNG KÝ -->
+        <div id="register-form" style="display: none;">
+            <form method="POST" enctype="multipart/form-data">
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="register-fullname">Họ Tên</label>
+                        <input type="text" id="register-fullname" name="fullname" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="register-dob">Ngày sinh</label>
+                        <input type="date" id="register-dob" name="dob" required>
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="register-hometown">Quê quán</label>
+                        <input type="text" id="register-hometown" name="hometown" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="register-phone">Số điện thoại</label>
+                        <input type="text" id="register-phone" name="phone" required>
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="register-password">Mật khẩu</label>
+                        <div class="password-wrapper">
+                            <input type="password" id="register-password" name="password" required>
+                            <i class="fa fa-eye password-icon" onclick="togglePassword('register-password')"></i>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label for="register-confirm-password">Nhập lại mật khẩu</label>
+                        <div class="password-wrapper">
+                            <input type="password" id="register-confirm-password" name="confirm_password" required>
+                            <i class="fa fa-eye password-icon" onclick="togglePassword('register-confirm-password')"></i>
+                        </div>
+                    </div>
+                </div>
+
+                <label for="register-id-document">Tải lên giấy tờ tùy thân</label>
+                <input type="file" id="register-id-document" name="id_document" accept="image/*" required>
+
+                <button type="submit" class="auth-button">ĐĂNG KÝ</button>
+            </form>
+        </div>
+    </div>
+</body>
+<script src="{{ url_for('static', filename='script/index.js') }}"></script>
+</html>
