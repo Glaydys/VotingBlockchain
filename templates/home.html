@@ -14,16 +14,16 @@
         <section class="profile-section">
             <h2>Thông Tin Người Dùng</h2>
             <div class="profile-card">
-                <img src="{{ url_for('static', filename='images/user.png') }}" alt="Ảnh đại diện" class="profile-img">
+                <img src="{{ url_for('static', filename=session['filepath']) }}" alt="Ảnh đại diện" class="profile-img">
                 <div class="profile-info">
-                    <p><strong>Họ tên:</strong> Nguyễn Văn A</p>
-                    <p><strong>Ngày sinh:</strong> 01/01/1990</p>
-                    <p><strong>Số điện thoại:</strong> 0901234567</p>
-                    <p><strong>Quê quán:</strong> Hà Nội</p>
+                    <p><strong>Họ tên:</strong>{{ session['filepath'] }}</p>
+                    <p><strong>Họ tên:</strong>{{ session['fullname'] }}</p>
+                    <p><strong>Ngày sinh:</strong> {{ session['date_of_birth'] }}</p>
+                    <p><strong>Số điện thoại:</strong> {{ session['phone'] }}</p>
+                    <p><strong>Quê quán:</strong> {{ session['hometown'] }}</p>
                 </div>
             </div>
         </section>
-
         <!-- SECTION 2: BIỂU ĐỒ TOP 5 ỨNG VIÊN -->
         <section class="top-votes-section">
             <h2>Top 5 Người Được Bình Chọn Nhiều Nhất</h2>

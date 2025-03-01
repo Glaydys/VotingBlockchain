@@ -16,10 +16,11 @@
             <button id="login-tab" class="tab active" onclick="switchForm('login')">ĐĂNG NHẬP</button>
             <button id="register-tab" class="tab" onclick="switchForm('register')">ĐĂNG KÝ</button>
         </div>
-
+       
         <!-- FORM ĐĂNG NHẬP -->
         <div id="login-form">
             <form method="POST">
+                <input type="hidden" name="action" value="login">
                 <label for="login-phone">Số điện thoại</label>
                 <input type="text" id="login-phone" name="phone" required>
 
@@ -28,7 +29,6 @@
                     <input type="password" id="login-password" name="password" required>
                     <i class="fa fa-eye password-icon" onclick="togglePassword('login-password')"></i>
                 </div>
-                
                 <button type="submit" class="auth-button">ĐĂNG NHẬP</button>
             </form>
         </div>
@@ -36,6 +36,7 @@
         <!-- FORM ĐĂNG KÝ -->
         <div id="register-form" style="display: none;">
             <form method="POST" enctype="multipart/form-data">
+                <input type="hidden" name="action" value="register">
                 <div class="form-row">
                     <div class="form-group">
                         <label for="register-fullname">Họ Tên</label>
