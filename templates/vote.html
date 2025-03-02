@@ -6,13 +6,30 @@
     <title>Bình Chọn Ứng Viên</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='css/vote.css') }}">
     <script src="{{ url_for('static', filename='script/vote.js') }}" defer></script>
+    <script src="https://esgoo.net/scripts/jquery.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
 </head>
 <body>
     <div class="vote-container">
         <h1>Bình Chọn Ứng Viên</h1>
+
+        <!-- Chọn Tỉnh/Thành, Quận/Huyện, Phường/Xã -->
+        <div class="location-container">
+            <div class="css_select_div">
+                <select class="css_select" id="tinh" name="tinh">
+                    <option value="0">Chọn Tỉnh Thành</option>
+                </select> 
+                <select class="css_select" id="quan" name="quan">
+                    <option value="0">Chọn Quận Huyện</option>
+                </select> 
+                <select class="css_select" id="phuong" name="phuong">
+                    <option value="0">Chọn Phường Xã</option>
+                </select>
+            </div>
+        </div>
+
+        <!-- Danh sách ứng viên -->
         <div class="candidate-grid">
-            <!-- Danh sách ứng viên -->
             <div class="candidate-card" onclick="selectCandidate(1)">
                 <img src="{{ url_for('static', filename='images/user.png') }}" alt="Ứng viên 1">
                 <p class="candidate-name">Nguyễn Văn A</p>
@@ -21,33 +38,56 @@
                 <img src="{{ url_for('static', filename='images/user.png') }}" alt="Ứng viên 2">
                 <p class="candidate-name">Trần Thị B</p>
             </div>
-            <div class="candidate-card" onclick="selectCandidate(3)">
-                <img src="{{ url_for('static', filename='images/user.png') }}" alt="Ứng viên 3">
-                <p class="candidate-name">Lê Văn C</p>
-            </div>
-            <div class="candidate-card" onclick="selectCandidate(4)">
-                <img src="{{ url_for('static', filename='images/user.png') }}" alt="Ứng viên 4">
-                <p class="candidate-name">Phạm Thị D</p>
-            </div>
-            <div class="candidate-card" onclick="selectCandidate(5)">
-                <img src="{{ url_for('static', filename='images/user.png') }}" alt="Ứng viên 5">
-                <p class="candidate-name">Hoàng Văn E</p>
-            </div>
-            <div class="candidate-card" onclick="selectCandidate(6)">
-                <img src="{{ url_for('static', filename='images/user.png') }}" alt="Ứng viên 6">
-                <p class="candidate-name">Bùi Thị F</p>
-            </div>
-            <div class="candidate-card" onclick="selectCandidate(7)">
-                <img src="{{ url_for('static', filename='images/user.png') }}" alt="Ứng viên 7">
-                <p class="candidate-name">Đỗ Văn G</p>
-            </div>
-            <div class="candidate-card" onclick="selectCandidate(8)">
-                <img src="{{ url_for('static', filename='images/user.png') }}" alt="Ứng viên 8">
-                <p class="candidate-name">Nguyễn Thị H</p>
-            </div>
         </div>
+
+        <!-- Nút chức năng -->
         <button class="vote-btn" onclick="submitVote()">Gửi Bình Chọn</button>
         <button class="home-btn" onclick="goHome()">Quay về Trang Chủ</button>
     </div>
+
+    <!-- JavaScript tải dữ liệu tỉnh thành -->
+    <script>
+        $(document).ready(function() {
+            // Lấy danh sách tỉnh thành
+            $.getJSON('https://esgoo.net/api-tinhthanh/1/0.htm', function(data_tinh) {        
+                if (data_tinh.error == 0) {
+                    $.each(data_tinh.data, function(key_tinh, val_tinh) {
+                        $("#tinh").append('<option value="' + val_tinh.id + '">' + val_tinh.full_name + '</option>');
+                    });
+
+                    $("#tinh").change(function() {
+                        var idtinh = $(this).val();
+                        $("#quan").html('<option value="0">Chọn Quận Huyện</option>');
+                        $("#phuong").html('<option value="0">Chọn Phường Xã</option>');
+
+                        if (idtinh !== "0") {
+                            $.getJSON('https://esgoo.net/api-tinhthanh/2/' + idtinh + '.htm', function(data_quan) {
+                                if (data_quan.error == 0) {
+                                    $.each(data_quan.data, function(key_quan, val_quan) {
+                                        $("#quan").append('<option value="' + val_quan.id + '">' + val_quan.full_name + '</option>');
+                                    });
+
+                                    $("#quan").change(function() {
+                                        var idquan = $(this).val();
+                                        $("#phuong").html('<option value="0">Chọn Phường Xã</option>');
+
+                                        if (idquan !== "0") {
+                                            $.getJSON('https://esgoo.net/api-tinhthanh/3/' + idquan + '.htm', function(data_phuong) {
+                                                if (data_phuong.error == 0) {
+                                                    $.each(data_phuong.data, function(key_phuong, val_phuong) {
+                                                        $("#phuong").append('<option value="' + val_phuong.id + '">' + val_phuong.full_name + '</option>');
+                                                    });
+                                                }
+                                            });
+                                        }
+                                    });
+                                }
+                            });
+                        }
+                    });
+                }
+            });
+        });
+    </script>
 </body>
 </html>

@@ -29,6 +29,40 @@ h1 {
     color: #D32F2F;
     margin-bottom: 20px;
 }
+/* Phần chọn tỉnh thành */
+.location-container {
+    margin-top: 20px;
+    text-align: center;
+}
+
+.css_select_div {
+    display: flex;
+    justify-content: center;
+    gap: 10px;
+    margin-bottom: 20px;
+}
+
+.css_select {
+    width: 30%;
+    max-width: 250px;
+    padding: 8px;
+    border-radius: 5px;
+    border: 1px solid #D32F2F;
+    background: #fff;
+    font-size: 16px;
+    color: #333;
+    outline: none;
+    transition: border-color 0.3s, box-shadow 0.3s;
+}
+
+.css_select:focus {
+    border-color: #FF5722;
+    box-shadow: 0 0 5px rgba(255, 87, 34, 0.5);
+}
+
+.css_select option {
+    padding: 5px;
+}
 
 /* Grid danh sách ứng viên */
 .candidate-grid {
