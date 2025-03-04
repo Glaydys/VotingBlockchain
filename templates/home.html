@@ -12,17 +12,23 @@
     <div class="container">
         <!-- SECTION 1: THÔNG TIN NGƯỜI DÙNG -->
         <section class="profile-section">
-            <h2>Thông Tin Người Dùng</h2>
+            <h2>Thông Tin Người Dùng sửa 2</h2>
             <div class="profile-card">
-                <img src="{{ url_for('static', filename=session['filepath']) }}" alt="Ảnh đại diện" class="profile-img">
+                <img src="{{ url_for('static', filename='images/user.png') }}" alt="Ảnh đại diện" class="profile-img">
+                <!-- <img src="{{ url_for('static', filename=session['filepath'].replace('static/', '')) }}" alt="Ảnh đại diện" class="profile-img"> -->
                 <div class="profile-info">
-                    <p><strong>Họ tên:</strong>{{ session['filepath'] }}</p>
                     <p><strong>Họ tên:</strong>{{ session['fullname'] }}</p>
                     <p><strong>Ngày sinh:</strong> {{ session['date_of_birth'] }}</p>
                     <p><strong>Số điện thoại:</strong> {{ session['phone'] }}</p>
                     <p><strong>Quê quán:</strong> {{ session['hometown'] }}</p>
                 </div>
             </div>
+            <!-- Cập nhật ảnh đại diên -->
+            <!-- <form action="{{ url_for('update_avatar') }}" method="POST" enctype="multipart/form-data">
+    <label for="avatar">Cập nhật ảnh đại diện:</label>
+    <input type="file" name="avatar" id="avatar" accept="image/*" required>
+    <button type="submit">Cập nhật</button>
+</form> -->
         </section>
         <!-- SECTION 2: BIỂU ĐỒ TOP 5 ỨNG VIÊN -->
         <section class="top-votes-section">

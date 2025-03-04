@@ -63,8 +63,9 @@ def register_user(request):
             filename = secure_filename(id_document.filename)
             file_path = os.path.join(app.config['UPLOAD_FOLDER'], filename) #Sửa ở đây
             print(f"Đường dẫn file: {file_path}") 
-            id_document.save(file_path)
-            id_document_path = file_path
+            
+            id_document.save(file_path)  # Lưu file
+            id_document_path = file_path.replace("\\", "/")
         except Exception as e:
             print(f"Lỗi lưu file: {e}") 
             return False
@@ -85,6 +86,7 @@ def register_user(request):
         print(f"Lỗi lưu vào database: {e}")
         return False
 
+#Hàm xử lý đăng nhập
 def login_user(request):
     phone = request.form['phone']
     password = request.form['password']
@@ -98,6 +100,38 @@ def login_user(request):
         print('Không tìm thấy user')
         return None
 
+@app.route("/update_avatar", methods=["POST"])
+def update_avatar():
+    if "avatar" not in request.files:
+        print("Không có tệp nào được chọn!")
+        return redirect(url_for("profile"))
+
+    avatar = request.files["avatar"]
+
+    if avatar.filename == "":
+        print("Chưa chọn ảnh!")
+        return redirect(url_for("profile"))
+
+    if avatar:
+        try:
+            # Đảm bảo thư mục tồn tại
+            if not os.path.exists(UPLOAD_FOLDER):
+                os.makedirs(UPLOAD_FOLDER)
+
+            # Lưu file với tên an toàn
+            filename = secure_filename(avatar.filename)
+            file_path = os.path.join(UPLOAD_FOLDER, filename)
+            avatar.save(file_path)
+
+            # Chuyển đổi đường dẫn thành dạng Flask có thể đọc
+            session["filepath"] = file_path.replace("\\", "/")
+
+            print("Cập nhật ảnh đại diện thành công!")
+            return redirect(url_for("home"))
+        except Exception as e:
+            print(f"Lỗi khi cập nhật ảnh: {e}")
+            return redirect(url_for("home"))
+        
 @app.route('/', methods=['GET', 'POST'])
 def index():
     if request.method == 'POST':
