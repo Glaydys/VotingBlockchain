@@ -33,15 +33,19 @@ os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 
 # Hàm xử lý đăng ký
 def register_user(request):
-    fullname = request.form['fullname']
-    dob_str = request.form['dob']
-    hometown = request.form['hometown']
-    phone = request.form['phone']
-    password = request.form['password']
-    confirm_password = request.form['confirm_password']
-    id_document = request.files['id_document']
+    fullname = request.form.get('fullname') 
+    dob_str = request.form.get('dob')
+    hometown = request.form.get('hometown')
+    phone = request.form.get('phone')
+    password = request.form.get('password')
+    confirm_password = request.form.get('confirm_password')
+    id_document = request.files.get('id_document')
 
     print(f"Thông tin form: fullname={fullname}, phone={phone}") # In thông tin
+    
+    if not fullname or not dob_str or not hometown or not phone or not password or not confirm_password or not id_document:
+        print("Lỗi: Vui lòng điền đầy đủ thông tin")
+        return jsonify({'success': False, 'message': 'Vui lòng điền đầy đủ thông tin'}), 400 # Trả về JSON
 
     if password != confirm_password:
         print("Lỗi: Mật khẩu không khớp") 
@@ -61,10 +65,10 @@ def register_user(request):
     if id_document:
         try:
             filename = secure_filename(id_document.filename)
-            file_path = os.path.join(app.config['UPLOAD_FOLDER'], filename) #Sửa ở đây
+            file_path = os.path.join(app.config['UPLOAD_FOLDER'], filename) 
             print(f"Đường dẫn file: {file_path}") 
             
-            id_document.save(file_path)  # Lưu file
+            id_document.save(file_path) 
             id_document_path = file_path.replace("\\", "/")
         except Exception as e:
             print(f"Lỗi lưu file: {e}") 
@@ -80,7 +84,7 @@ def register_user(request):
 
     try:
         users_collection.insert_one(user.to_dict())
-        print("Đăng ký thành công vào MongoDB") # In thông báo
+        print("Đăng ký thành công vào MongoDB, chờ Admin duyệt ") 
         return user
     except Exception as e:
         print(f"Lỗi lưu vào database: {e}")
@@ -92,14 +96,20 @@ def login_user(request):
     password = request.form['password']
     print(f"Thông tin đăng nhập: phone={phone}, password={password}")
 
-    user = users_collection.find_one({'phone': phone})
-    if user and bcrypt.checkpw(password.encode('utf-8'), user['password']):
-        print("Đăng nhập thành công")
-        return user # Trả về thông tin user
+    user_data = users_collection.find_one({'phone': phone})
+    if user_data:
+        if bcrypt.checkpw(password.encode('utf-8'), user_data['password']):
+            if user_data.get('is_approved', False): 
+                print("Đăng nhập thành công")
+                return user_data
+            else:
+                print("Lỗi: Tài khoản chưa được quản trị viên xác thực")
+                return False    
+            print("Lỗi: Mật khẩu không chính xác")
+            return False    
     else:
-        print('Không tìm thấy user')
-        return None
-
+        print('Lỗi: Không tìm thấy tài khoản với số điện thoại này')
+        return False    
 @app.route("/update_avatar", methods=["POST"])
 def update_avatar():
     if "avatar" not in request.files:
@@ -190,4 +200,4 @@ def home():
     return render_template('home.html')
 
 if __name__ == '__main__':
-    app.run(debug=False, use_reloader=False)
+    app.run(debug=True)
