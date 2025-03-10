@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request, redirect, url_for, session
+from flask import Flask, render_template, request, redirect, url_for, session, send_from_directory,flash
 from pymongo import MongoClient
 import bcrypt
 import os
@@ -6,9 +6,18 @@ import hashlib
 from werkzeug.utils import secure_filename
 from datetime import datetime
 from models.user import User
+import cloudinary
+import cloudinary.uploader
+
 
 app = Flask(__name__)
 app.secret_key = os.urandom(24)
+
+cloudinary.config(
+    cloud_name = os.environ.get("CLOUDINARY_CLOUD_NAME"),
+    api_key = os.environ.get("CLOUDINARY_API_KEY"),
+    api_secret = os.environ.get("CLOUDINARY_API_SECRET")
+)
 
 # Cấu hình MongoDB
 app.config['MONGO_URI'] = "mongodb+srv://Nhom07:Nhom07VAA@cluster0.fg6a2.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0"
@@ -31,6 +40,12 @@ UPLOAD_FOLDER = 'static/uploads'
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 
+ALLOWED_EXTENSIONS = {'pdf', 'png', 'jpg', 'jpeg'} # Định nghĩa các loại file cho phép
+
+def allowed_file(filename):
+    return '.' in filename and \
+           filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
+           
 # Hàm xử lý đăng ký
 def register_user(request):
     fullname = request.form.get('fullname') 
@@ -62,20 +77,29 @@ def register_user(request):
         print("Lỗi: Số điện thoại đã được đăng ký") 
         return False
     
+    id_document = request.files.get('id_document')
+
     if id_document:
-        try:
-            filename = secure_filename(id_document.filename)
-            file_path = os.path.join(app.config['UPLOAD_FOLDER'], filename) 
-            print(f"Đường dẫn file: {file_path}") 
-            
-            id_document.save(file_path) 
-            id_document_path = file_path.replace("\\", "/")
-        except Exception as e:
-            print(f"Lỗi lưu file: {e}") 
-            return False
+        filename = secure_filename(id_document.filename)
+        if allowed_file(filename):
+            try:
+                # **Upload file lên Cloudinary**
+                upload_result = cloudinary.uploader.upload(id_document, 
+                                                            folder="Blockchain") # Thư mục trên Cloudinary (tùy chọn)
+                # **Lấy URL an toàn của ảnh từ Cloudinary response**
+                id_document_url = upload_result.get('secure_url')
+                print(f"Upload lên Cloudinary thành công. URL: {id_document_url}")
+                id_document_path = id_document_url # Lưu Cloudinary URL vào biến id_document_path
+
+            except Exception as e:
+                print(f"Lỗi upload lên Cloudinary: {e}")
+                return jsonify({'success': False, 'message': 'Lỗi khi tải lên giấy tờ tùy thân lên Cloudinary'}), 500
+
+        else:
+            return jsonify({'success': False, 'message': 'Loại file giấy tờ tùy thân không được phép'}), 400
     else:
-        print("Lỗi: Vui lòng tải lên giấy tờ tùy thân") 
-        return False
+        return jsonify({'success': False, 'message': 'Vui lòng tải lên giấy tờ tùy thân'}), 400
+
 
     data_string = f"{fullname}{dob}{hometown}{phone}{password}{id_document_path}"
     blockchain_hash = hashlib.sha256(data_string.encode('utf-8')).hexdigest()
