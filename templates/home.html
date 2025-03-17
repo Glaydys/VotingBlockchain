@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="vi">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -7,15 +8,41 @@
     <link rel="stylesheet" href="{{ url_for('static', filename='css/home.css') }}">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script> <!-- Thư viện vẽ biểu đồ -->
+    <style>
+        .flash-message {
+            margin-bottom: 15px;
+            padding: 10px 15px;
+            border-radius: 4px;
+        }
+
+        .flash-message.success {
+            background-color: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+
+        .flash-message.error {
+            background-color: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+    </style>
 </head>
+
 <body>
     <div class="container">
         <!-- SECTION 1: THÔNG TIN NGƯỜI DÙNG -->
         <section class="profile-section">
-            <h2>Thông Tin Người Dùng sửa 2</h2>
+            <h2>Thông Tin Người Dùng</h2>
+            {% if messages %}
+            {% for category, message in messages.items() %}
+            <div class="flash-message {{ category }}">
+                {{ message }}
+            </div>
+            {% endfor %}
+            {% endif %}
             <div class="profile-card">
                 <img src="{{ url_for('static', filename='images/user.png') }}" alt="Ảnh đại diện" class="profile-img">
-                <!-- <img src="{{ url_for('static', filename=session['filepath'].replace('static/', '')) }}" alt="Ảnh đại diện" class="profile-img"> -->
                 <div class="profile-info">
                     <p><strong>Họ tên:</strong>{{ session['fullname'] }}</p>
                     <p><strong>Ngày sinh:</strong> {{ session['date_of_birth'] }}</p>
@@ -23,12 +50,7 @@
                     <p><strong>Quê quán:</strong> {{ session['hometown'] }}</p>
                 </div>
             </div>
-            <!-- Cập nhật ảnh đại diên -->
-            <!-- <form action="{{ url_for('update_avatar') }}" method="POST" enctype="multipart/form-data">
-    <label for="avatar">Cập nhật ảnh đại diện:</label>
-    <input type="file" name="avatar" id="avatar" accept="image/*" required>
-    <button type="submit">Cập nhật</button>
-</form> -->
+
         </section>
         <!-- SECTION 2: BIỂU ĐỒ TOP 5 ỨNG VIÊN -->
         <section class="top-votes-section">
@@ -36,7 +58,7 @@
             <canvas id="voteChart"></canvas> <!-- Biểu đồ cột -->
             <div class="vote-buttons">
                 <button class="vote-btn" onclick="window.location.href='/vote'">Bình Chọn Ngay</button>
-                <button class="result-btn" onclick="window.location.href='/result'">Xem Kết Quả</button>                
+                <button class="result-btn" onclick="window.location.href='/result'">Xem Kết Quả</button>
             </div>
         </section>
 
@@ -82,4 +104,5 @@
         });
     </script>
 </body>
+
 </html>

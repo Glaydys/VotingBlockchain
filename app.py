@@ -1,10 +1,10 @@
-from flask import Flask, render_template, request, redirect, url_for, session, send_from_directory,flash
+from flask import Flask, render_template, request, redirect, url_for, session, send_from_directory,flash, jsonify ,flash,get_flashed_messages
 from pymongo import MongoClient
 import bcrypt
 import os
 import hashlib
 from werkzeug.utils import secure_filename
-from datetime import datetime
+from datetime import datetime,date
 from models.user import User
 import cloudinary
 import cloudinary.uploader
@@ -36,11 +36,8 @@ except Exception as e:
     print(f"Không thể kết nối đến MongoDB: {e}")
 
 # Đường dẫn thư mục lưu trữ ảnh
-UPLOAD_FOLDER = 'static/uploads'
-app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
-os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 
-ALLOWED_EXTENSIONS = {'pdf', 'png', 'jpg', 'jpeg'} # Định nghĩa các loại file cho phép
+ALLOWED_EXTENSIONS = {'pdf', 'png', 'jpg', 'jpeg'} 
 
 def allowed_file(filename):
     return '.' in filename and \
@@ -49,6 +46,7 @@ def allowed_file(filename):
 # Hàm xử lý đăng ký
 def register_user(request):
     fullname = request.form.get('fullname') 
+    personal_id = request.form.get('personal_id')
     dob_str = request.form.get('dob')
     hometown = request.form.get('hometown')
     phone = request.form.get('phone')
@@ -58,25 +56,33 @@ def register_user(request):
 
     print(f"Thông tin form: fullname={fullname}, phone={phone}") # In thông tin
     
-    if not fullname or not dob_str or not hometown or not phone or not password or not confirm_password or not id_document:
-        print("Lỗi: Vui lòng điền đầy đủ thông tin")
-        return jsonify({'success': False, 'message': 'Vui lòng điền đầy đủ thông tin'}), 400 # Trả về JSON
+    if not fullname or not dob_str or not hometown or not phone or not password or not confirm_password or not id_document or not personal_id:
+        return {'success': False, 'message': 'Vui lòng điền đầy đủ thông tin'}
 
     if password != confirm_password:
-        print("Lỗi: Mật khẩu không khớp") 
-        return False
+        return {'success': False, 'message': 'Mật khẩu không khớp'}
 
+    if len(password) < 8:
+        return {'success': False, 'message': 'Mật khẩu phải có ít nhất 8 ký tự'}
+     # **Kiểm tra định dạng ngày sinh và tuổi**
     try:
-        dob = datetime.strptime(dob_str, '%Y-%m-%d')
-        print(f"Ngày sinh: {dob}")
+        dob = datetime.strptime(dob_str, '%Y-%m-%d').date()  
+        today = date.today()
+        age = today.year - dob.year - ((today.month, today.day) < (dob.month, dob.day))  # Tính tuổi
+        if age < 18:
+            return {'success': False, 'message': 'Bạn phải trên 18 tuổi để đăng ký'}
+        print(f"Ngày sinh: {dob}, Tuổi: {age}")
     except ValueError:
-        print("Lỗi: Định dạng ngày không hợp lệ")
-        return False
+        return {'success': False, 'message': 'Định dạng ngày sinh không hợp lệ (YYYY-MM-DD)'}
 
-    if users_collection.find_one({'phone': phone}):
-        print("Lỗi: Số điện thoại đã được đăng ký") 
-        return False
+    if not phone.isdigit() or len(phone) != 10:
+        return {'success': False, 'message': 'Số điện thoại không hợp lệ. Phải là 10 chữ số.'}
     
+    if users_collection.find_one({'phone': phone}):
+        return {'success': False, 'message': 'Số điện thoại đã được đăng ký'}
+    
+    if users_collection.find_one({'personal_id': personal_id}):
+        return {'success': False, 'message': 'Số Căn cước công dân đã được đăng ký'}
     id_document = request.files.get('id_document')
 
     if id_document:
@@ -93,118 +99,78 @@ def register_user(request):
 
             except Exception as e:
                 print(f"Lỗi upload lên Cloudinary: {e}")
-                return jsonify({'success': False, 'message': 'Lỗi khi tải lên giấy tờ tùy thân lên Cloudinary'}), 500
+                return {'success': False, 'message': 'Lỗi khi tải lên giấy tờ tùy thân lên Cloudinary'}
 
         else:
-            return jsonify({'success': False, 'message': 'Loại file giấy tờ tùy thân không được phép'}), 400
+            return {'success': False, 'message': 'Loại file giấy tờ tùy thân không được phép'}
     else:
-        return jsonify({'success': False, 'message': 'Vui lòng tải lên giấy tờ tùy thân'}), 400
+        return {'success': False, 'message': 'Vui lòng tải lên giấy tờ tùy thân'}
 
 
-    data_string = f"{fullname}{dob}{hometown}{phone}{password}{id_document_path}"
+    data_string = f"{fullname}{dob}{hometown}{phone}{password}{id_document_path}{personal_id}"
     blockchain_hash = hashlib.sha256(data_string.encode('utf-8')).hexdigest()
     hashed_password = bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt())
-    user = User(fullname, dob, hometown, phone, hashed_password, id_document_path, blockchain_hash)
+    user = User(fullname, dob, hometown, phone, hashed_password, id_document_path, personal_id, blockchain_hash)
 
     try:
         users_collection.insert_one(user.to_dict())
-        print("Đăng ký thành công vào MongoDB, chờ Admin duyệt ") 
-        return user
+        flash("Đăng ký thành công vui lo chờ Admin duyệt ", 'success')
+        return {'success': True, 'message': 'Đăng ký thành công! Vui lòng chờ quản trị viên phê duyệt tài khoản.'}  # Trả về dict thành công
     except Exception as e:
+        
         print(f"Lỗi lưu vào database: {e}")
-        return False
-
-#Hàm xử lý đăng nhập
+        return {'success': False, 'message': 'Lỗi khi lưu thông tin đăng ký vào hệ thống'}  # Trả về dict lỗi
 def login_user(request):
     phone = request.form['phone']
     password = request.form['password']
     print(f"Thông tin đăng nhập: phone={phone}, password={password}")
-
+    
     user_data = users_collection.find_one({'phone': phone})
     if user_data:
         if bcrypt.checkpw(password.encode('utf-8'), user_data['password']):
-            if user_data.get('is_approved', False): 
+            if user_data.get('is_approved', False):
                 print("Đăng nhập thành công")
                 return user_data
             else:
-                print("Lỗi: Tài khoản chưa được quản trị viên xác thực")
-                return False    
-            print("Lỗi: Mật khẩu không chính xác")
-            return False    
+                return {'success': False, 'message': 'Tài khoản chưa được quản trị viên xác thực'}
+        else:
+            print("DEBUG in login_user: Incorrect password detected")
+            return {'success': False, 'message': 'Mật khẩu không chính xác'}
     else:
-        print('Lỗi: Không tìm thấy tài khoản với số điện thoại này')
-        return False    
-@app.route("/update_avatar", methods=["POST"])
-def update_avatar():
-    if "avatar" not in request.files:
-        print("Không có tệp nào được chọn!")
-        return redirect(url_for("profile"))
-
-    avatar = request.files["avatar"]
-
-    if avatar.filename == "":
-        print("Chưa chọn ảnh!")
-        return redirect(url_for("profile"))
-
-    if avatar:
-        try:
-            # Đảm bảo thư mục tồn tại
-            if not os.path.exists(UPLOAD_FOLDER):
-                os.makedirs(UPLOAD_FOLDER)
-
-            # Lưu file với tên an toàn
-            filename = secure_filename(avatar.filename)
-            file_path = os.path.join(UPLOAD_FOLDER, filename)
-            avatar.save(file_path)
-
-            # Chuyển đổi đường dẫn thành dạng Flask có thể đọc
-            session["filepath"] = file_path.replace("\\", "/")
-
-            print("Cập nhật ảnh đại diện thành công!")
-            return redirect(url_for("home"))
-        except Exception as e:
-            print(f"Lỗi khi cập nhật ảnh: {e}")
-            return redirect(url_for("home"))
-        
+        return {'success': False, 'message': 'Không tìm thấy tài khoản với số điện thoại này'}
+    
 @app.route('/', methods=['GET', 'POST'])
 def index():
+    messages = {}
     if request.method == 'POST':
         action = request.form['action']
 
         if action == 'register':
-            user = register_user(request)
-            if user:
-                try:
-                    users_collection.insert_one(user.to_dict())
-                    session['phone'] = user['phone']
-                    session['date_of_birth'] = str(user['dob']) 
-                    session['hometown'] = user['hometown'] 
-                    session['fullname'] = user['fullname'] 
-                    session['filepath'] = user['id_document_path'] 
-                    print("Đăng ký thành công!")
-                    return redirect(url_for('home'))
-                except Exception as e:
-                    return render_template('index.html')
+            register_result = register_user(request)
+            if register_result['success']:
+                flash(register_result['message'], 'success')
             else:
-                print('user không có gì')
-                return render_template('index.html')
+                flash(register_result['message'], 'error')
 
         elif action == 'login':
             user = login_user(request)
-            if user:
-                session['phone'] = user['phone']  
-                session['date_of_birth'] = str(user['date_of_birth'])  
-                session['hometown'] = user['hometown']  
-                session['fullname'] = user['fullname']  
-                session['filepath'] = user['id_document_path']  
-                print("Đăng nhập thành công!")
-                print(session)
-                return redirect(url_for('home'))
+            if isinstance(user, dict) and 'success' in user:
+                flash(user['message'], 'error')
             else:
-                print('login thất bại ở main')
-                return render_template('index.html')
+                session['phone'] = user['phone']
+                session['date_of_birth'] = str(user['date_of_birth'])
+                session['hometown'] = user['hometown']
+                session['fullname'] = user['fullname']
+                session['filepath'] = user['id_document_path']
+                return redirect(url_for('home')) # No flash here now in / route
 
-    return render_template('index.html')
+    messages_list = get_flashed_messages(with_categories=True)
+    messages = {}
+    for category, message in messages_list:
+        messages[category] = message
+
+    return render_template('index.html', messages=messages)
+
 
 @app.route('/logout')
 def logout():
@@ -221,7 +187,16 @@ def result():
 
 @app.route('/home')
 def home():
-    return render_template('home.html')
+    print("Entering /home route")  # DEBUG PRINT 1
+    flash('Đăng nhập thành công!', 'success')
+    print("Flash message 'Đăng nhập thành công!' flashed") # DEBUG PRINT 2
+    messages_list = get_flashed_messages(with_categories=True)
+    print(f"Flashed messages in /home route: {messages_list}") # DEBUG PRINT 3
+    messages = {}
+    for category, message in messages_list:
+        messages[category] = message
+
+    return render_template('home.html', messages=messages) 
 
 if __name__ == '__main__':
     app.run(debug=True)
