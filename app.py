@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request, redirect, url_for, session
+from flask import Flask, render_template, request, redirect, url_for, session, send_from_directory,flash
 from pymongo import MongoClient
 import bcrypt
 import os
@@ -6,9 +6,18 @@ import hashlib
 from werkzeug.utils import secure_filename
 from datetime import datetime
 from models.user import User
+import cloudinary
+import cloudinary.uploader
+
 
 app = Flask(__name__)
 app.secret_key = os.urandom(24)
+
+cloudinary.config(
+    cloud_name = os.environ.get("CLOUDINARY_CLOUD_NAME"),
+    api_key = os.environ.get("CLOUDINARY_API_KEY"),
+    api_secret = os.environ.get("CLOUDINARY_API_SECRET")
+)
 
 # Cấu hình MongoDB
 app.config['MONGO_URI'] = "mongodb+srv://Nhom07:Nhom07VAA@cluster0.fg6a2.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0"
@@ -31,17 +40,27 @@ UPLOAD_FOLDER = 'static/uploads'
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 
+ALLOWED_EXTENSIONS = {'pdf', 'png', 'jpg', 'jpeg'} # Định nghĩa các loại file cho phép
+
+def allowed_file(filename):
+    return '.' in filename and \
+           filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
+           
 # Hàm xử lý đăng ký
 def register_user(request):
-    fullname = request.form['fullname']
-    dob_str = request.form['dob']
-    hometown = request.form['hometown']
-    phone = request.form['phone']
-    password = request.form['password']
-    confirm_password = request.form['confirm_password']
-    id_document = request.files['id_document']
+    fullname = request.form.get('fullname') 
+    dob_str = request.form.get('dob')
+    hometown = request.form.get('hometown')
+    phone = request.form.get('phone')
+    password = request.form.get('password')
+    confirm_password = request.form.get('confirm_password')
+    id_document = request.files.get('id_document')
 
     print(f"Thông tin form: fullname={fullname}, phone={phone}") # In thông tin
+    
+    if not fullname or not dob_str or not hometown or not phone or not password or not confirm_password or not id_document:
+        print("Lỗi: Vui lòng điền đầy đủ thông tin")
+        return jsonify({'success': False, 'message': 'Vui lòng điền đầy đủ thông tin'}), 400 # Trả về JSON
 
     if password != confirm_password:
         print("Lỗi: Mật khẩu không khớp") 
@@ -58,19 +77,29 @@ def register_user(request):
         print("Lỗi: Số điện thoại đã được đăng ký") 
         return False
     
+    id_document = request.files.get('id_document')
+
     if id_document:
-        try:
-            filename = secure_filename(id_document.filename)
-            file_path = os.path.join(app.config['UPLOAD_FOLDER'], filename) #Sửa ở đây
-            print(f"Đường dẫn file: {file_path}") 
-            id_document.save(file_path)
-            id_document_path = file_path
-        except Exception as e:
-            print(f"Lỗi lưu file: {e}") 
-            return False
+        filename = secure_filename(id_document.filename)
+        if allowed_file(filename):
+            try:
+                # **Upload file lên Cloudinary**
+                upload_result = cloudinary.uploader.upload(id_document, 
+                                                            folder="Blockchain") # Thư mục trên Cloudinary (tùy chọn)
+                # **Lấy URL an toàn của ảnh từ Cloudinary response**
+                id_document_url = upload_result.get('secure_url')
+                print(f"Upload lên Cloudinary thành công. URL: {id_document_url}")
+                id_document_path = id_document_url # Lưu Cloudinary URL vào biến id_document_path
+
+            except Exception as e:
+                print(f"Lỗi upload lên Cloudinary: {e}")
+                return jsonify({'success': False, 'message': 'Lỗi khi tải lên giấy tờ tùy thân lên Cloudinary'}), 500
+
+        else:
+            return jsonify({'success': False, 'message': 'Loại file giấy tờ tùy thân không được phép'}), 400
     else:
-        print("Lỗi: Vui lòng tải lên giấy tờ tùy thân") 
-        return False
+        return jsonify({'success': False, 'message': 'Vui lòng tải lên giấy tờ tùy thân'}), 400
+
 
     data_string = f"{fullname}{dob}{hometown}{phone}{password}{id_document_path}"
     blockchain_hash = hashlib.sha256(data_string.encode('utf-8')).hexdigest()
@@ -79,25 +108,64 @@ def register_user(request):
 
     try:
         users_collection.insert_one(user.to_dict())
-        print("Đăng ký thành công vào MongoDB") # In thông báo
+        print("Đăng ký thành công vào MongoDB, chờ Admin duyệt ") 
         return user
     except Exception as e:
         print(f"Lỗi lưu vào database: {e}")
         return False
 
+#Hàm xử lý đăng nhập
 def login_user(request):
     phone = request.form['phone']
     password = request.form['password']
     print(f"Thông tin đăng nhập: phone={phone}, password={password}")
 
-    user = users_collection.find_one({'phone': phone})
-    if user and bcrypt.checkpw(password.encode('utf-8'), user['password']):
-        print("Đăng nhập thành công")
-        return user # Trả về thông tin user
+    user_data = users_collection.find_one({'phone': phone})
+    if user_data:
+        if bcrypt.checkpw(password.encode('utf-8'), user_data['password']):
+            if user_data.get('is_approved', False): 
+                print("Đăng nhập thành công")
+                return user_data
+            else:
+                print("Lỗi: Tài khoản chưa được quản trị viên xác thực")
+                return False    
+            print("Lỗi: Mật khẩu không chính xác")
+            return False    
     else:
-        print('Không tìm thấy user')
-        return None
+        print('Lỗi: Không tìm thấy tài khoản với số điện thoại này')
+        return False    
+@app.route("/update_avatar", methods=["POST"])
+def update_avatar():
+    if "avatar" not in request.files:
+        print("Không có tệp nào được chọn!")
+        return redirect(url_for("profile"))
 
+    avatar = request.files["avatar"]
+
+    if avatar.filename == "":
+        print("Chưa chọn ảnh!")
+        return redirect(url_for("profile"))
+
+    if avatar:
+        try:
+            # Đảm bảo thư mục tồn tại
+            if not os.path.exists(UPLOAD_FOLDER):
+                os.makedirs(UPLOAD_FOLDER)
+
+            # Lưu file với tên an toàn
+            filename = secure_filename(avatar.filename)
+            file_path = os.path.join(UPLOAD_FOLDER, filename)
+            avatar.save(file_path)
+
+            # Chuyển đổi đường dẫn thành dạng Flask có thể đọc
+            session["filepath"] = file_path.replace("\\", "/")
+
+            print("Cập nhật ảnh đại diện thành công!")
+            return redirect(url_for("home"))
+        except Exception as e:
+            print(f"Lỗi khi cập nhật ảnh: {e}")
+            return redirect(url_for("home"))
+        
 @app.route('/', methods=['GET', 'POST'])
 def index():
     if request.method == 'POST':
@@ -156,4 +224,4 @@ def home():
     return render_template('home.html')
 
 if __name__ == '__main__':
-    app.run(debug=False, use_reloader=False)
+    app.run(debug=True)
