@@ -8,6 +8,7 @@ from datetime import datetime,date
 from models.user import User
 import cloudinary
 import cloudinary.uploader
+from bson.objectid import ObjectId
 
 
 app = Flask(__name__)
@@ -24,6 +25,8 @@ app.config['MONGO_URI'] = "mongodb+srv://Nhom07:Nhom07VAA@cluster0.fg6a2.mongodb
 client = MongoClient(app.config['MONGO_URI'])
 db = client["Block"]
 users_collection = db["users"]
+elections_collection = db["elections"]  
+candidates_collection = db["candidates"]  
 
     
 # Kiểm tra kết nối MongoDB
@@ -197,6 +200,53 @@ def home():
         messages[category] = message
 
     return render_template('home.html', messages=messages) 
+
+@app.route('/get_elections', methods=['GET'])
+def get_elections():
+    tinh = request.args.get('tinh')  # Giờ tinh, quan, phuong phải là tên (Ví dụ: "Hà Nội")
+    quan = request.args.get('quan')  
+    phuong = request.args.get('phuong')  
+
+    query = {}
+    if tinh:
+        query["tinh"] = tinh  # Tìm theo tên thay vì mã
+    if quan:
+        query["quan"] = quan
+    if phuong:
+        query["phuong"] = phuong
+
+    elections = list(elections_collection.find(query, {"_id": 1, "tenCuocBauCu": 1}))
+
+    for election in elections:
+        election["_id"] = str(election["_id"])
+
+    return jsonify({"status": "success", "elections": elections})
+
+
+@app.route('/get_candidates', methods=['GET'])
+def get_candidates():
+    cuoc_bau_cu_id = request.args.get("cuocBauCu")
+
+    if not cuoc_bau_cu_id:
+        return jsonify({"status": "error", "message": "Thiếu tham số cuocBauCu"}), 400
+
+    if not ObjectId.is_valid(cuoc_bau_cu_id):
+        return jsonify({"status": "error", "message": "ID không hợp lệ"}), 400
+
+    try:
+        election = elections_collection.find_one(
+            {"_id": ObjectId(cuoc_bau_cu_id)},
+            {"_id": 0, "ungCuVien.name": 1}  # Chỉ lấy trường "name"
+        )
+    except Exception as e:
+        return jsonify({"status": "error", "message": str(e)}), 500
+
+    if not election or "ungCuVien" not in election:
+        return jsonify({"status": "error", "message": "Không tìm thấy cuộc bầu cử hoặc không có ứng cử viên"}), 404
+
+    candidate_names = [candidate["name"] for candidate in election["ungCuVien"]]
+
+    return jsonify({"status": "success", "candidates": candidate_names})
 
 if __name__ == '__main__':
     app.run(debug=True)
