@@ -5,14 +5,13 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Bình Chọn Ứng Viên</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='css/vote.css') }}">
-    <script src="{{ url_for('static', filename='script/vote.js') }}" defer></script>
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
 </head>
 <body>
     <div class="vote-container">
         <h1>Bình Chọn Ứng Viên</h1>
-
+        <input type="hidden" id="user_id_input" value="{{ user_id }}">
         <!-- Chọn Tỉnh/Thành, Quận/Huyện, Phường/Xã -->
         <div class="location-container">
             <div class="css_select_div">
@@ -39,106 +38,8 @@
         <button class="home-btn" onclick="goHome()">Quay về Trang Chủ</button>
     </div>
 
-    <script>
-    $(document).ready(function() {
-        $.getJSON('https://esgoo.net/api-tinhthanh/1/0.htm', function(data_tinh) {        
-            if (data_tinh.error === 0) {
-                $.each(data_tinh.data, function(key_tinh, val_tinh) {
-                    $("#tinh").append(`<option value="${val_tinh.full_name}" data-id="${val_tinh.id}">${val_tinh.full_name}</option>`);
-                });
-
-                $("#tinh").change(function() {
-                    var tenTinh = $(this).val();
-                    var idTinh = $(this).find(":selected").data("id");
-
-                    $("#quan").html('<option value="0">Chọn Quận Huyện</option>');
-                    $("#phuong").html('<option value="0">Chọn Phường Xã</option>');
-                    $("#cuocBauCu").html('<option value="0">Chọn Cuộc Bầu Cử</option>');
-                    $(".candidate-grid").html("");
-
-                    if (idTinh) {
-                        $.getJSON(`https://esgoo.net/api-tinhthanh/2/${idTinh}.htm`, function(data_quan) {
-                            if (data_quan.error === 0) {
-                                $.each(data_quan.data, function(key_quan, val_quan) {
-                                    $("#quan").append(`<option value="${val_quan.full_name}" data-id="${val_quan.id}">${val_quan.full_name}</option>`);
-                                });
-
-                                $("#quan").change(function() {
-                                    var tenQuan = $(this).val();
-                                    var idQuan = $(this).find(":selected").data("id");
-
-                                    $("#phuong").html('<option value="0">Chọn Phường Xã</option>');
-                                    $("#cuocBauCu").html('<option value="0">Chọn Cuộc Bầu Cử</option>');
-                                    $(".candidate-grid").html("");
-
-                                    if (idQuan) {
-                                        $.getJSON(`https://esgoo.net/api-tinhthanh/3/${idQuan}.htm`, function(data_phuong) {
-                                            if (data_phuong.error === 0) {
-                                                $.each(data_phuong.data, function(key_phuong, val_phuong) {
-                                                    $("#phuong").append(`<option value="${val_phuong.full_name}" data-id="${val_phuong.id}">${val_phuong.full_name}</option>`);
-                                                });
-
-                                                $("#phuong").change(function() {
-                                                    var tenPhuong = $(this).val();
-                                                    var idPhuong = $(this).find(":selected").data("id");
-
-                                                    $("#cuocBauCu").html('<option value="0">Chọn Cuộc Bầu Cử</option>');
-                                                    $(".candidate-grid").html("");
-
-                                                    if (idPhuong) {
-                                                        $.getJSON(`/get_elections?tinh=${encodeURIComponent(tenTinh)}&quan=${encodeURIComponent(tenQuan)}&phuong=${encodeURIComponent(tenPhuong)}`, function(response) {
-                                                            if (response.status === "success" && response.elections.length > 0) {
-                                                                $.each(response.elections, function(index, cuoc) {
-                                                                    $("#cuocBauCu").append(`<option value="${cuoc._id}">${cuoc.tenCuocBauCu}</option>`);
-                                                                });
-
-                                                                $("#cuocBauCu").change(function() {
-                                                                    var idCuocBauCu = $(this).val();
-                                                                    $(".candidate-grid").html("");
-
-                                                                    if (idCuocBauCu) {
-                                                                        $.getJSON(`/get_candidates?cuocBauCu=${idCuocBauCu}`, function(data_ungCuVien) {
-                                                                            if (data_ungCuVien.status === "success" && data_ungCuVien.candidates.length > 0) {
-                                                                                $.each(data_ungCuVien.candidates, function(index, ungVien) {
-                                                                                $(".candidate-grid").append(`
-                                                                                    <div class="candidate-card" onclick="selectCandidate('${index}')">
-                                                                                        <img src="{{ url_for('static', filename='images/user.png') }}" alt="Ứng viên">
-                                                                                        <p class="candidate-name">${ungVien}</p>
-                                                                                    </div>
-                                                                                `);
-                                                                            });
-
-                                                                            }
-                                                                        });
-                                                                    }
-                                                                });
-                                                            }
-                                                        });
-                                                    }
-                                                });
-                                            }
-                                        });
-                                    }
-                                });
-                            }
-                        });
-                    }
-                });
-            }
-        });
-    });
-
-    function selectCandidate(id) {
-        console.log("Ứng viên được chọn:", id);
-    }
-
-    function submitVote() {
-        alert("Bình chọn đã được gửi!");
-    }
-
-    function goHome() {
-        window.location.href = "/";
-    }
+    <script src="{{ url_for('static', filename='script/vote.js') }}" defer>
     </script>
+
 </body>
 </html>

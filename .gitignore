@@ -1,0 +1,43 @@
+# Python bytecode and cache
+**/__pycache__
+*.pyc
+*.pyo
+*.pyd
+*.cpython-*.pyc
+*.cpy
+user.cpython-*.pyc
+
+# Node.js dependencies
+node_modules/
+
+# Environment configuration
+.env
+
+# Package lock file (consider if you want to commit this or not, often committed in JS projects)
+# package-lock.json
+.gitkeep
+# Editor/IDE specific files (optional, add if relevant to your project)
+.vscode/
+.idea/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.pdb
+
+# Log files and temp files (if any in your project root)
+*.log
+*.tmp
+temp/
+tmp/
+
+# OS generated files
+.DS_Store
+Thumbs.db
+
+# Ignore files in node_modules/dotenv (as seen in image) if they are not supposed to be tracked.
+node_modules/dotenv/*
+!node_modules/dotenv/README.md # Keep README if you want to track it
+!node_modules/dotenv/LICENSE # Keep LICENSE if you want to track it
+!node_modules/dotenv/package.json # Keep package.json if you want to track it
+!node_modules/dotenv/package-lock.json # Keep package-lock.json if you want to track it

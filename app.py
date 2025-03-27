@@ -9,7 +9,8 @@ from models.user import User
 import cloudinary
 import cloudinary.uploader
 from bson.objectid import ObjectId
-
+from web3 import Web3
+import json
 
 app = Flask(__name__)
 app.secret_key = os.urandom(24)
@@ -21,7 +22,7 @@ cloudinary.config(
 )
 
 # Cấu hình MongoDB
-app.config['MONGO_URI'] = "mongodb+srv://Nhom07:Nhom07VAA@cluster0.fg6a2.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0"
+app.config['MONGO_URI'] = os.environ.get("MONGO_URI")
 client = MongoClient(app.config['MONGO_URI'])
 db = client["Block"]
 users_collection = db["users"]
@@ -37,6 +38,15 @@ try:
     print("Kết nối thành công đến MongoDB!")
 except Exception as e:
     print(f"Không thể kết nối đến MongoDB: {e}")
+    
+ganache_url = os.environ.get("GANACHE_URL") 
+web3 = Web3(Web3.HTTPProvider(ganache_url))
+
+# Kiểm tra kết nối Web3
+if web3.is_connected():
+    print("Kết nối thành công đến Ganache!")
+else:
+    print("Không thể kết nối đến Ganache!")
 
 # Đường dẫn thư mục lưu trữ ảnh
 
@@ -182,7 +192,13 @@ def logout():
 
 @app.route('/vote')
 def vote():
-    return render_template('vote.html')
+    election_id = request.args.get('cuocBauCu')
+    print(f"election_id trong route /vote: {election_id}")
+    user_phone = session.get('phone') # Lấy số điện thoại người dùng từ session (ví dụ)
+    user_data = users_collection.find_one({'phone': user_phone})
+    user_id = str(user_data['_id']) if user_data else "unknown" 
+    
+    return render_template('vote.html', user_id=user_id, election_id=election_id)
 
 @app.route('/result')
 def result():
@@ -236,17 +252,86 @@ def get_candidates():
     try:
         election = elections_collection.find_one(
             {"_id": ObjectId(cuoc_bau_cu_id)},
-            {"_id": 0, "ungCuVien.name": 1}  # Chỉ lấy trường "name"
+            {"_id": 0, "ungCuVien": 1}
         )
+        print(f"election: {election}")
+        if not election or "ungCuVien" not in election:
+            return jsonify({"status": "error", "message": "Không tìm thấy cuộc bầu cử hoặc không có ứng cử viên"}), 404
+
+        candidates_data = []
+        for candidate in election["ungCuVien"]:
+            candidates_data.append({
+                "id": str(candidate.get("_id")),  # **Lấy _id của ứng viên và convert to string**
+                "full_name": candidate.get("full_name", "Không rõ")
+            })
+
+        return jsonify({"status": "success", "candidates": candidates_data})
+
     except Exception as e:
+        print(f"Lỗi khi lấy danh sách ứng cử viên: {e}")
         return jsonify({"status": "error", "message": str(e)}), 500
+    
+    
+    
 
-    if not election or "ungCuVien" not in election:
-        return jsonify({"status": "error", "message": "Không tìm thấy cuộc bầu cử hoặc không có ứng cử viên"}), 404
+contract_abi_path = os.path.join(os.path.dirname(__file__), 'build', 'contracts', 'VotingContract.json')
+with open(contract_abi_path, 'r') as f:
+    contract_abi = json.load(f)['abi']
 
-    candidate_names = [candidate["name"] for candidate in election["ungCuVien"]]
+# **Địa chỉ Contract đã triển khai (CẬP NHẬT ĐỊA CHỈ MỚI)**
+contract_address = os.environ.get("CONTRACT_ADDRESS") 
+# Tạo đối tượng contract
+voting_contract = web3.eth.contract(address=contract_address, abi=contract_abi)
 
-    return jsonify({"status": "success", "candidates": candidate_names})
+
+@app.route('/submit_vote', methods=['POST'])
+def submit_vote():
+    if not session.get('phone'): # Kiểm tra đăng nhập (nếu cần)
+        return jsonify({'status': 'error', 'message': 'Bạn cần đăng nhập để bỏ phiếu'}), 401
+
+    try:
+        user_id_str = request.form.get('userId') # **Lấy userId từ form dưới dạng chuỗi**
+        candidate_id_str = request.form.get('candidateId') # **Lấy candidateId từ form dưới dạng chuỗi**
+        election_id_str = request.form.get('electionId') # **Lấy electionId từ form dưới dạng chuỗi**
+
+        print(f"Raw userId (string): {user_id_str}, candidateId (string): {candidate_id_str}, electionId (string): {election_id_str}") # In ra giá trị chuỗi gốc để debug
+
+        # **Chuyển đổi chuỗi hex sang số nguyên (uint256)**
+        try:
+            user_id = int(user_id_str, 16) if user_id_str else 0 # Chuyển từ chuỗi hex sang số nguyên, nếu chuỗi rỗng thì để là 0
+            candidate_id = int(candidate_id_str, 16) if candidate_id_str else 0 # Chuyển từ chuỗi hex sang số nguyên, nếu chuỗi rỗng thì để là 0
+            election_id = int(election_id_str, 16) if election_id_str else 0 # Chuyển từ chuỗi hex sang số nguyên, nếu chuỗi rỗng thì để là 0
+        except ValueError as e:
+            print(f"Error converting IDs to integers: {e}") # In lỗi nếu chuyển đổi không thành công
+            return jsonify({'status': 'error', 'message': 'Lỗi chuyển đổi ID sang số nguyên. Vui lòng kiểm tra lại ID.'}), 400 # Trả về lỗi cho frontend
+
+        print(f"userId (int): {user_id}, candidateId (int): {candidate_id}, electionId (int): {election_id}") # In ra giá trị số nguyên sau chuyển đổi để debug
+
+        # Lấy danh sách tài khoản Ganache (CHỈ DÙNG CHO TEST)
+        accounts = web3.eth.accounts
+        voter_account = accounts[0] # Sử dụng tài khoản đầu tiên làm người bỏ phiếu (cho mục đích test)
+
+        # Gọi hàm castVote trong smart contract, truyền vào các giá trị số nguyên đã chuyển đổi
+        tx_hash = voting_contract.functions.castVote(user_id, candidate_id, election_id).transact({'from': voter_account})
+
+        # Chờ transaction được mine
+        receipt = web3.eth.wait_for_transaction_receipt(tx_hash)
+        print("Transaction receipt:", receipt) # In receipt để debug
+
+        return jsonify({'status': 'success', 'message': 'Bỏ phiếu thành công! Transaction Hash: {}'.format(tx_hash.hex())}), 200
+
+    except Exception as e:
+        print(f"Lỗi khi bỏ phiếu: {e}")
+        return jsonify({'status': 'error', 'message': f'Lỗi khi bỏ phiếu: {str(e)}'}), 500
+    
+@app.route('/get_vote_count')
+def get_vote_count():
+    try:
+        vote_count = voting_contract.functions.getVoteCount().call()
+        return jsonify({'status': 'success', 'vote_count': vote_count}), 200
+    except Exception as e:
+        print(f"Lỗi khi lấy số lượng phiếu bầu: {e}")
+        return jsonify({'status': 'error', 'message': str(e)}), 500
 
 if __name__ == '__main__':
     app.run(debug=True)
