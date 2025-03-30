@@ -57,10 +57,10 @@ $(document).ready(function() {
                                                                 $(".candidate-grid").html(""); // Clear old candidates
 
                                                                 if (idCuocBauCu) {
-                                                                    // Fetch candidates from backend API
-                                                                    $.getJSON('http://127.0.0.1:8800/get_candidates', function(candidates) {
-                                                                        if (candidates && candidates.length > 0) {
-                                                                            $.each(candidates, function(index, ungVien) {
+                                                                    // Fetch election detail including candidates
+                                                                    $.getJSON(`http://127.0.0.1:8800/get_elections/${idCuocBauCu}`, function(electionDetail) {
+                                                                        if (electionDetail && electionDetail.ungCuVien && electionDetail.ungCuVien.length > 0) {
+                                                                            $.each(electionDetail.ungCuVien, function(index, ungVien) {
                                                                                 console.log("Ứng viên index:", index, "ID:", ungVien.id, "Tên:", ungVien.full_name);
                                                                                 $(".candidate-grid").append(`
                                                                                     <div class="candidate-card" id="candidate-${ungVien.id}" data-candidate-id="${ungVien.id}" onclick="selectCandidate('${ungVien.id}')">
@@ -69,7 +69,12 @@ $(document).ready(function() {
                                                                                     </div>
                                                                                 `);
                                                                             });
+                                                                        } else {
+                                                                            $(".candidate-grid").html("<p>Không có ứng cử viên cho cuộc bầu cử này.</p>");
                                                                         }
+                                                                    }).fail(function(jqXHR, textStatus, errorThrown) {
+                                                                        console.error("Lỗi khi tải chi tiết cuộc bầu cử:", textStatus, errorThrown);
+                                                                        $(".candidate-grid").html("<p>Lỗi tải ứng cử viên.</p>");
                                                                     });
                                                                 }
                                                             });
