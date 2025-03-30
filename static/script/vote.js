@@ -136,10 +136,12 @@ function submitVote() {
         if (data.status === 'success') {
             alert("Bình chọn thành công! Transaction Hash: " + data.message); // Hiển thị Transaction Hash
             window.location.href = "/result"; // Chuyển hướng đến trang kết quả
-        } else {
-            alert("Lỗi bình chọn: " + data.message); // Hiển thị thông báo lỗi từ server
+        } else if (data.status === 'error') {
+            // **Xử lý lỗi từ backend, bao gồm cả lỗi "đã bỏ phiếu rồi"**
+            alert("Lỗi bình chọn: " + data.message); // Hiển thị thông báo lỗi từ server (có thể là "Bạn đã bỏ phiếu trong cuộc bầu cử này rồi.")
         }
     })
+
     .catch(error => {
         console.error("Lỗi khi gửi bình chọn:", error);
         alert("Lỗi khi gửi bình chọn. Vui lòng thử lại sau.");

@@ -39,7 +39,9 @@ try:
 except Exception as e:
     print(f"Không thể kết nối đến MongoDB: {e}")
     
-ganache_url = os.environ.get("GANACHE_URL") 
+# ganache_url = os.environ.get("GANACHE_URL") 
+ganache_url = "http://127.0.0.1:7545" # Nếu bạn dùng giá trị cứng
+
 web3 = Web3(Web3.HTTPProvider(ganache_url))
 
 # Kiểm tra kết nối Web3
@@ -275,7 +277,7 @@ def get_candidates():
     
 
 contract_abi_path = os.path.join(os.path.dirname(__file__), 'build', 'contracts', 'VotingContract.json')
-with open(contract_abi_path, 'r') as f:
+with open(contract_abi_path, 'r', encoding='utf-8') as f:
     contract_abi = json.load(f)['abi']
 
 # **Địa chỉ Contract đã triển khai (CẬP NHẬT ĐỊA CHỈ MỚI)**
@@ -310,13 +312,21 @@ def submit_vote():
         # Lấy danh sách tài khoản Ganache (CHỈ DÙNG CHO TEST)
         accounts = web3.eth.accounts
         voter_account = accounts[0] # Sử dụng tài khoản đầu tiên làm người bỏ phiếu (cho mục đích test)
-
+        
+        print(f"Kiểm tra hasVoted - userId: {user_id}, electionId: {election_id}")
+        
+         # **Kiểm tra xem người dùng đã bỏ phiếu trong cuộc bầu cử này chưa (gọi hàm checkHasVoted của smart contract)**
+        already_voted = voting_contract.functions.checkHasVoted(user_id, election_id).call()
+        if already_voted:
+            print("DEBUG: Phát hiện đã bỏ phiếu rồi!")
+            print(f"Giá trị already_voted: {already_voted}")
+            return jsonify({'status': 'error', 'message': 'Bạn đã bỏ phiếu trong cuộc bầu cử này rồi.'}), 400 # Trả về lỗi nếu đã bỏ phiếu
+        
         # Gọi hàm castVote trong smart contract, truyền vào các giá trị số nguyên đã chuyển đổi
         tx_hash = voting_contract.functions.castVote(user_id, candidate_id, election_id).transact({'from': voter_account})
 
         # Chờ transaction được mine
         receipt = web3.eth.wait_for_transaction_receipt(tx_hash)
-        print("Transaction receipt:", receipt) # In receipt để debug
 
         return jsonify({'status': 'success', 'message': 'Bỏ phiếu thành công! Transaction Hash: {}'.format(tx_hash.hex())}), 200
 
