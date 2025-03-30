@@ -195,7 +195,6 @@ def logout():
 @app.route('/vote')
 def vote():
     election_id = request.args.get('cuocBauCu')
-    print(f"election_id trong route /vote: {election_id}")
     user_phone = session.get('phone') # Lấy số điện thoại người dùng từ session (ví dụ)
     user_data = users_collection.find_one({'phone': user_phone})
     user_id = str(user_data['_id']) if user_data else "unknown" 
@@ -210,9 +209,7 @@ def result():
 def home():
     print("Entering /home route")  # DEBUG PRINT 1
     flash('Đăng nhập thành công!', 'success')
-    print("Flash message 'Đăng nhập thành công!' flashed") # DEBUG PRINT 2
     messages_list = get_flashed_messages(with_categories=True)
-    print(f"Flashed messages in /home route: {messages_list}") # DEBUG PRINT 3
     messages = {}
     for category, message in messages_list:
         messages[category] = message
@@ -256,7 +253,6 @@ def get_candidates():
             {"_id": ObjectId(cuoc_bau_cu_id)},
             {"_id": 0, "ungCuVien": 1}
         )
-        print(f"election: {election}")
         if not election or "ungCuVien" not in election:
             return jsonify({"status": "error", "message": "Không tìm thấy cuộc bầu cử hoặc không có ứng cử viên"}), 404
 
@@ -328,7 +324,7 @@ def submit_vote():
         # Chờ transaction được mine
         receipt = web3.eth.wait_for_transaction_receipt(tx_hash)
 
-        return jsonify({'status': 'success', 'message': 'Bỏ phiếu thành công! Transaction Hash: {}'.format(tx_hash.hex())}), 200
+        return jsonify({'status': 'success', 'message': 'Bỏ phiếu thành công! '}), 200
 
     except Exception as e:
         print(f"Lỗi khi bỏ phiếu: {e}")

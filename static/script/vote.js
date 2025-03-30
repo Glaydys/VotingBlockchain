@@ -1,5 +1,5 @@
 $(document).ready(function() {
-    $.getJSON('https://esgoo.net/api-tinhthanh/1/0.htm', function(data_tinh) {        
+    $.getJSON('https://esgoo.net/api-tinhthanh/1/0.htm', function(data_tinh) {
         if (data_tinh.error === 0) {
             $.each(data_tinh.data, function(key_tinh, val_tinh) {
                 $("#tinh").append(`<option value="${val_tinh.full_name}" data-id="${val_tinh.id}">${val_tinh.full_name}</option>`);
@@ -44,25 +44,26 @@ $(document).ready(function() {
                                                 $(".candidate-grid").html("");
 
                                                 if (idPhuong) {
-                                                    $.getJSON(`/get_elections?tinh=${encodeURIComponent(tenTinh)}&quan=${encodeURIComponent(tenQuan)}&phuong=${encodeURIComponent(tenPhuong)}`, function(response) {
-                                                        if (response.status === "success" && response.elections.length > 0) {
-                                                            $.each(response.elections, function(index, cuoc) {
-                                                                $("#cuocBauCu").append(`<option value="${cuoc._id}">${cuoc.tenCuocBauCu}</option>`);
+                                                    // Fetch elections from backend API
+                                                    $.getJSON('http://127.0.0.1:8800/get_elections', function(elections) {
+                                                        if (elections && elections.length > 0) {
+                                                            $.each(elections, function(index, cuoc) {
+                                                                $("#cuocBauCu").append(`<option value="${cuoc.id}">${cuoc.tenCuocBauCu}</option>`);
                                                             });
 
                                                             $("#cuocBauCu").change(function() {
                                                                 var idCuocBauCu = $(this).val();
                                                                 selectedElectionId = idCuocBauCu;
-                                                                $(".candidate-grid").html(""); // Xóa danh sách cũ
+                                                                $(".candidate-grid").html(""); // Clear old candidates
 
                                                                 if (idCuocBauCu) {
-                                                                    $.getJSON(`/get_candidates?cuocBauCu=${idCuocBauCu}`, function(data_ungCuVien) {
-                                                                        if (data_ungCuVien.status === "success" && data_ungCuVien.candidates.length > 0) {
-                                                                            $.each(data_ungCuVien.candidates, function(index, ungVien) {
+                                                                    // Fetch candidates from backend API
+                                                                    $.getJSON('http://127.0.0.1:8800/get_candidates', function(candidates) {
+                                                                        if (candidates && candidates.length > 0) {
+                                                                            $.each(candidates, function(index, ungVien) {
                                                                                 console.log("Ứng viên index:", index, "ID:", ungVien.id, "Tên:", ungVien.full_name);
-                                                                                // Lấy ungvien.id để thêm và xóa select - để nhất quán trong việc chọn ra ucv
                                                                                 $(".candidate-grid").append(`
-                                                                                    <div class="candidate-card" id="candidate-${ungVien.id}" data-candidate-id="${ungVien.id}" onclick="selectCandidate('${ungVien.id}')"> 
+                                                                                    <div class="candidate-card" id="candidate-${ungVien.id}" data-candidate-id="${ungVien.id}" onclick="selectCandidate('${ungVien.id}')">
                                                                                         <img src="/static/images/user.png" alt="Ứng viên">
                                                                                         <p class="candidate-name">${ungVien.full_name}</p>
                                                                                     </div>
@@ -72,7 +73,12 @@ $(document).ready(function() {
                                                                     });
                                                                 }
                                                             });
+                                                        } else {
+                                                            $("#cuocBauCu").html('<option value="0">Không có cuộc bầu cử nào</option>');
                                                         }
+                                                    }).fail(function(jqXHR, textStatus, errorThrown) {
+                                                        console.error("Lỗi khi tải danh sách cuộc bầu cử:", textStatus, errorThrown);
+                                                        $("#cuocBauCu").html('<option value="0">Lỗi tải cuộc bầu cử</option>');
                                                     });
                                                 }
                                             });
@@ -89,15 +95,15 @@ $(document).ready(function() {
 });
 
 let selectedCandidate = null;
-let selectedCandidateId = null; 
+let selectedCandidateId = null;
 let selectedElectionId = null;
 
-function selectCandidate(candidateId) { 
+function selectCandidate(candidateId) {
     console.log("Hàm selectCandidate được gọi với id:", candidateId);
     $(".candidate-card").removeClass("selected");
-    selectedCandidateId = candidateId; 
+    selectedCandidateId = candidateId;
     console.log("selectedCandidateId: ", candidateId);
-    $(`#candidate-${candidateId}`).addClass("selected"); 
+    $(`#candidate-${candidateId}`).addClass("selected");
 }
 
 function submitVote() {
@@ -106,15 +112,14 @@ function submitVote() {
         return;
     }
 
-    // **Lấy User ID và Election ID từ input (hoặc từ nơi khác trong ứng dụng của bạn)**
-    const userId = $("#user_id_input").val(); // Lấy từ input ẩn
+    const userId = $("#user_id_input").val();
     const electionId = selectedElectionId;
-    const candidateId = selectedCandidateId; // Sử dụng selectedCandidateId đã lưu
+    const candidateId = selectedCandidateId;
 
-    console.log("userId:", userId); // Thêm dòng này
-    console.log("candidateId:", candidateId); // Thêm dòng này
-    console.log("electionId:", electionId); // Thêm dòng này
-    
+    console.log("userId:", userId);
+    console.log("candidateId:", candidateId);
+    console.log("electionId:", electionId);
+
     if (!userId || !electionId || !candidateId) {
         alert("Thiếu thông tin User ID, Candidate ID hoặc Election ID. Vui lòng kiểm tra lại.");
         return;
@@ -122,26 +127,24 @@ function submitVote() {
 
     const formData = new URLSearchParams();
     formData.append('userId', userId);
-    formData.append('candidateId', candidateId); 
+    formData.append('candidateId', candidateId);
     formData.append('electionId', electionId);
 
 
-    fetch('/submit_vote', { // **Sửa route thành '/submit_vote'**
+    fetch('/submit_vote', { // **Important:** This route `/submit_vote` is not defined in your backend. You need to create it in `app.py` if you intend to use it.
         method: 'POST',
-        headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, // Gửi dữ liệu form urlencoded
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
         body: formData.toString()
     })
     .then(response => response.json())
     .then(data => {
         if (data.status === 'success') {
-            alert("Bình chọn thành công! Transaction Hash: " + data.message); // Hiển thị Transaction Hash
-            window.location.href = "/result"; // Chuyển hướng đến trang kết quả
+            alert("Bình chọn thành công! Transaction Hash: " + data.message);
+            window.location.href = "/result"; // You need to create a result page if you want to redirect here
         } else if (data.status === 'error') {
-            // **Xử lý lỗi từ backend, bao gồm cả lỗi "đã bỏ phiếu rồi"**
-            alert("Lỗi bình chọn: " + data.message); // Hiển thị thông báo lỗi từ server (có thể là "Bạn đã bỏ phiếu trong cuộc bầu cử này rồi.")
+            alert("Lỗi bình chọn: " + data.message);
         }
     })
-
     .catch(error => {
         console.error("Lỗi khi gửi bình chọn:", error);
         alert("Lỗi khi gửi bình chọn. Vui lòng thử lại sau.");
