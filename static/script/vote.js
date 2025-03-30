@@ -145,7 +145,7 @@ function submitVote() {
     .then(data => {
         if (data.status === 'success') {
             alert("Bình chọn thành công! Transaction Hash: " + data.message);
-            window.location.href = "/result"; // You need to create a result page if you want to redirect here
+            window.location.href = `/result/${electionId}`; // You need to create a result page if you want to redirect here
         } else if (data.status === 'error') {
             alert("Lỗi bình chọn: " + data.message);
         }

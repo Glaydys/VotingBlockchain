@@ -11,8 +11,11 @@ import cloudinary.uploader
 from bson.objectid import ObjectId
 from web3 import Web3
 import json
+import requests
+from flask_cors import CORS
 
 app = Flask(__name__)
+CORS(app)
 app.secret_key = os.urandom(24)
 
 cloudinary.config(
@@ -201,10 +204,6 @@ def vote():
     
     return render_template('vote.html', user_id=user_id, election_id=election_id)
 
-@app.route('/result')
-def result():
-    return render_template('results.html')
-
 @app.route('/home')
 def home():
     print("Entering /home route")  # DEBUG PRINT 1
@@ -280,7 +279,7 @@ with open(contract_abi_path, 'r', encoding='utf-8') as f:
 contract_address = os.environ.get("CONTRACT_ADDRESS") 
 # Tạo đối tượng contract
 voting_contract = web3.eth.contract(address=contract_address, abi=contract_abi)
-
+result_contract = web3.eth.contract(address=contract_address, abi=contract_abi)
 
 @app.route('/submit_vote', methods=['POST'])
 def submit_vote():
@@ -307,7 +306,7 @@ def submit_vote():
 
         # Lấy danh sách tài khoản Ganache (CHỈ DÙNG CHO TEST)
         accounts = web3.eth.accounts
-        voter_account = accounts[0] # Sử dụng tài khoản đầu tiên làm người bỏ phiếu (cho mục đích test)
+        voter_account = accounts[3] # Sử dụng tài khoản đầu tiên làm người bỏ phiếu (cho mục đích test)
         
         print(f"Kiểm tra hasVoted - userId: {user_id}, electionId: {election_id}")
         
@@ -330,14 +329,50 @@ def submit_vote():
         print(f"Lỗi khi bỏ phiếu: {e}")
         return jsonify({'status': 'error', 'message': f'Lỗi khi bỏ phiếu: {str(e)}'}), 500
     
-@app.route('/get_vote_count')
-def get_vote_count():
+
+@app.route('/get_vote_count/<int:election_id>')
+def get_vote_count(election_id):
     try:
-        vote_count = voting_contract.functions.getVoteCount().call()
-        return jsonify({'status': 'success', 'vote_count': vote_count}), 200
+        vote_count = voting_contract.functions.getVoteCount(election_id).call()
+        return jsonify({"election_id": election_id, "vote_count": vote_count}), 200
     except Exception as e:
         print(f"Lỗi khi lấy số lượng phiếu bầu: {e}")
-        return jsonify({'status': 'error', 'message': str(e)}), 500
+        return jsonify({'message': str(e)}), 500
+
+
+@app.route('/result/<election_id>')
+def result(election_id):
+    try:
+        # Gọi smart contract lấy kết quả
+        election_id = int(election_id)  # Chuyển về số nguyên
+        result = result_contract.functions.getElectionResults(election_id).call()
+
+        candidate_ids = result[0]  # Danh sách ID ứng viên
+        vote_counts = result[1]  # Số phiếu
+        
+        vote_results = []
+        for candidate_id, votes in zip(candidate_ids, vote_counts):
+            try:
+                response = requests.get(f'http://127.0.0.1:8800/get_candidates/{candidate_id}')
+                if response.status_code == 200:
+                    candidate_data = response.json()
+                    #print(candidate_data)
+                    name = candidate_data.get("full_name", f"Ứng viên {candidate_id}")
+                else:
+                    name = f"Ứng viên {candidate_id}"
+            except Exception as e:
+                name = f"Ứng viên {candidate_id}"
+            
+            vote_results.append({
+                "name": name,
+                "votes": int(votes),
+            })
+
+        return render_template("results.html", election_id=election_id, vote_results=vote_results)
+
+    except Exception as e:
+        return render_template("results.html", error=str(e), vote_results=[])
+    
 
 if __name__ == '__main__':
     app.run(debug=True)
