@@ -7,26 +7,6 @@
     <title>Trang Chủ</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='css/home.css') }}">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script> <!-- Thư viện vẽ biểu đồ -->
-    <style>
-        .flash-message {
-            margin-bottom: 15px;
-            padding: 10px 15px;
-            border-radius: 4px;
-        }
-
-        .flash-message.success {
-            background-color: #d4edda;
-            color: #155724;
-            border: 1px solid #c3e6cb;
-        }
-
-        .flash-message.error {
-            background-color: #f8d7da;
-            color: #721c24;
-            border: 1px solid #f5c6cb;
-        }
-    </style>
 </head>
 
 <body>
@@ -34,82 +14,76 @@
         <!-- SECTION 1: THÔNG TIN NGƯỜI DÙNG -->
         <section class="profile-section">
             <h2>Thông Tin Người Dùng</h2>
-            {% if messages %}
-            {% for category, message in messages.items() %}
-            <div class="flash-message {{ category }}">
-                {{ message }}
-            </div>
-            {% endfor %}
-            {% endif %}
             <div class="profile-card">
                 <img src="{{ url_for('static', filename='images/user.png') }}" alt="Ảnh đại diện" class="profile-img">
                 <div class="profile-info">
-                    <p><strong>Họ tên:</strong>{{ session['fullname'] }}</p>
+                    <p><strong>Họ tên:</strong> {{ session['fullname'] }}</p>
                     <p><strong>Ngày sinh:</strong> {{ session['date_of_birth'] }}</p>
                     <p><strong>Số điện thoại:</strong> {{ session['phone'] }}</p>
                     <p><strong>Quê quán:</strong> {{ session['hometown'] }}</p>
                 </div>
             </div>
-
-        </section>
-        <!-- SECTION 2: BIỂU ĐỒ TOP 5 ỨNG VIÊN -->
-        <section class="top-votes-section">
-            <h2>Top 5 Người Được Bình Chọn Nhiều Nhất</h2>
-            <canvas id="voteChart"></canvas> <!-- Biểu đồ cột -->
-            <div class="vote-buttons">
-                <button class="vote-btn" onclick="window.location.href='/vote'">Bình Chọn Ngay</button>
-                <button class="result-btn" onclick="enterElectionCode()">Xem Kết Quả</button>
-            </div>
         </section>
 
-        <!-- SECTION 3: LỊCH SỬ BÌNH CHỌN -->
-        <section class="notification-section">
-            <h2>Lịch Sử Bình Chọn</h2>
-            <div class="notification-list">
-                <p>Bạn đã bình chọn cho: <strong>Ứng viên 2</strong></p>
-            </div>
+        <!-- SECTION 2: LỜI KÊU GỌI BÌNH CHỌN -->
+        <section class="vote-section">
+            <h2>Hãy tham gia bình chọn ngay!</h2>
+            <button class="vote-btn" onclick="window.location.href='/vote'">Bình Chọn Ngay</button>
+        </section>
+
+        <!-- SECTION 3: KẾT QUẢ CÁC CUỘC BẦU CỬ -->
+        <section class="result-section">
+            <h2>Kết Quả Các Cuộc Bầu Cử</h2>
+            <table class="result-table">
+                <thead>
+                    <tr>
+                        <th>Tên Cuộc Bầu Cử</th>
+                        <th>Tỉnh</th>
+                        <th>Quận/Huyện</th>
+                        <th>Phường</th> <!-- Cột tên phường -->
+                        <th>Số Ứng Cử Viên</th>
+                        <th>Số Lượng Phiếu Bầu</th>
+                        <th>Hành Động</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>Bầu Cử Đại Biểu Quốc Hội</td>
+                        <td>Hà Nội</td>
+                        <td>Quận Hoàn Kiếm</td>
+                        <td>Phường Tràng Tiền</td> <!-- Thông tin mẫu về phường -->
+                        <td>10</td>
+                        <td>1500</td>
+                        <td>
+                            <button class="result-btn" onclick="window.location.href='/result/1'">Xem Kết Quả</button>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>Bầu Cử Hội Đồng Nhân Dân</td>
+                        <td>Hồ Chí Minh</td>
+                        <td>Quận 1</td>
+                        <td>Phường Bến Nghé</td> <!-- Thông tin mẫu về phường -->
+                        <td>8</td>
+                        <td>2000</td>
+                        <td>
+                            <button class="result-btn" onclick="window.location.href='/result/2'">Xem Kết Quả</button>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>Bầu Cử Cộng Đồng</td>
+                        <td>Đà Nẵng</td>
+                        <td>Quận Hải Châu</td>
+                        <td>Phường Thạch Thang</td> <!-- Thông tin mẫu về phường -->
+                        <td>12</td>
+                        <td>1800</td>
+                        <td>
+                            <button class="result-btn" onclick="window.location.href='/result/3'">Xem Kết Quả</button>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
         </section>
     </div>
-
-    <script>
-        // Dữ liệu số lượt vote của top 5 ứng viên (có thể thay bằng dữ liệu động từ backend)
-        const candidateNames = ["Ứng viên 1", "Ứng viên 2", "Ứng viên 3", "Ứng viên 4", "Ứng viên 5"];
-        const voteCounts = [120, 180, 90, 160, 140]; // Số lượt vote
-
-        const ctx = document.getElementById('voteChart').getContext('2d');
-        const voteChart = new Chart(ctx, {
-            type: 'bar', // Biểu đồ cột
-            data: {
-                labels: candidateNames,
-                datasets: [{
-                    label: 'Số lượt bình chọn',
-                    data: voteCounts,
-                    backgroundColor: '#D32F2F', // Màu đỏ pastel
-                    borderColor: '#B71C1C', // Viền đậm hơn
-                    borderWidth: 1
-                }]
-            },
-            options: {
-                responsive: true,
-                scales: {
-                    y: {
-                        beginAtZero: true,
-                        title: {
-                            display: true,
-                            text: 'Lượt bình chọn'
-                        }
-                    }
-                }
-            }
-        });
-
-        function enterElectionCode() {
-            let code = prompt("Nhập mã cuộc bầu cử:");
-            if (code) {
-                window.location.href = `/result/${encodeURIComponent(code)}`;
-            }
-        }
-    </script>
 </body>
 
 </html>
