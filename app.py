@@ -215,62 +215,6 @@ def home():
 
     return render_template('home.html', messages=messages) 
 
-@app.route('/get_elections', methods=['GET'])
-def get_elections():
-    tinh = request.args.get('tinh')  # Giờ tinh, quan, phuong phải là tên (Ví dụ: "Hà Nội")
-    quan = request.args.get('quan')  
-    phuong = request.args.get('phuong')  
-
-    query = {}
-    if tinh:
-        query["tinh"] = tinh  # Tìm theo tên thay vì mã
-    if quan:
-        query["quan"] = quan
-    if phuong:
-        query["phuong"] = phuong
-
-    elections = list(elections_collection.find(query, {"_id": 1, "tenCuocBauCu": 1}))
-
-    for election in elections:
-        election["_id"] = str(election["_id"])
-
-    return jsonify({"status": "success", "elections": elections})
-
-
-@app.route('/get_candidates', methods=['GET'])
-def get_candidates():
-    cuoc_bau_cu_id = request.args.get("cuocBauCu")
-
-    if not cuoc_bau_cu_id:
-        return jsonify({"status": "error", "message": "Thiếu tham số cuocBauCu"}), 400
-
-    if not ObjectId.is_valid(cuoc_bau_cu_id):
-        return jsonify({"status": "error", "message": "ID không hợp lệ"}), 400
-
-    try:
-        election = elections_collection.find_one(
-            {"_id": ObjectId(cuoc_bau_cu_id)},
-            {"_id": 0, "ungCuVien": 1}
-        )
-        if not election or "ungCuVien" not in election:
-            return jsonify({"status": "error", "message": "Không tìm thấy cuộc bầu cử hoặc không có ứng cử viên"}), 404
-
-        candidates_data = []
-        for candidate in election["ungCuVien"]:
-            candidates_data.append({
-                "id": str(candidate.get("_id")),  # **Lấy _id của ứng viên và convert to string**
-                "full_name": candidate.get("full_name", "Không rõ")
-            })
-
-        return jsonify({"status": "success", "candidates": candidates_data})
-
-    except Exception as e:
-        print(f"Lỗi khi lấy danh sách ứng cử viên: {e}")
-        return jsonify({"status": "error", "message": str(e)}), 500
-    
-    
-    
-
 contract_abi_path = os.path.join(os.path.dirname(__file__), 'build', 'contracts', 'VotingContract.json')
 with open(contract_abi_path, 'r', encoding='utf-8') as f:
     contract_abi = json.load(f)['abi']
@@ -308,8 +252,6 @@ def submit_vote():
         accounts = web3.eth.accounts
         voter_account = accounts[3] # Sử dụng tài khoản đầu tiên làm người bỏ phiếu (cho mục đích test)
         
-        print(f"Kiểm tra hasVoted - userId: {user_id}, electionId: {election_id}")
-        
          # **Kiểm tra xem người dùng đã bỏ phiếu trong cuộc bầu cử này chưa (gọi hàm checkHasVoted của smart contract)**
         already_voted = voting_contract.functions.checkHasVoted(user_id, election_id).call()
         if already_voted:
@@ -326,9 +268,16 @@ def submit_vote():
         return jsonify({'status': 'success', 'message': 'Bỏ phiếu thành công! '}), 200
 
     except Exception as e:
-        print(f"Lỗi khi bỏ phiếu: {e}")
-        return jsonify({'status': 'error', 'message': f'Lỗi khi bỏ phiếu: {str(e)}'}), 500
-    
+        error_message = str(e) # Lấy thông tin lỗi từ exception
+        print(f"Lỗi khi bỏ phiếu: {error_message}") # In ra lỗi ở backend
+
+        if "Cuộc bầu cử đã kết thúc" in error_message:
+            return jsonify({'status': 'error', 'message': 'Cuộc bầu cử đã kết thúc, bạn không thể bỏ phiếu.'}), 400
+        elif "Bạn đã bỏ phiếu trong cuộc bầu cử này rồi" in error_message: # This condition may not be reached because of checkHasVoted earlier
+            return jsonify({'status': 'error', 'message': 'Bạn đã bỏ phiếu trong cuộc bầu cử này rồi.'}), 400
+        else:
+            return jsonify({'status': 'error', 'message': f'Lỗi khi bỏ phiếu: {error_message}'}), 500
+
 
 @app.route('/get_vote_count/<int:election_id>')
 def get_vote_count(election_id):

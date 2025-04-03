@@ -1,7 +1,16 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
+interface IElection {
+    enum Election_status { Created, Approved }
+    function getElectionStatus(uint _electionId) external view returns (Election_status);
+}
 contract VotingContract {
+    IElection public electionContract;
+
+    constructor(address _electionContractAddress) {
+        electionContract = IElection(_electionContractAddress);
+    }
     struct Vote {
         uint256 userId;
         uint256 candidateId;
@@ -16,6 +25,9 @@ contract VotingContract {
     mapping(uint256 => mapping(uint256 => bool)) public hasVoted;
 
     function castVote(uint256 _userId, uint256 _candidateId, uint256 _electionId) public {
+        
+        IElection.Election_status electionStatus = electionContract.getElectionStatus(_electionId);
+        require(electionStatus != IElection.Election_status.Approved, unicode"Cuộc bầu cử đã kết thúc, bạn không thể bỏ phiếu.");
 
         require(!hasVoted[_userId][_electionId],  unicode"Bạn đã bỏ phiếu trong cuộc bầu cử này rồi.");
 
