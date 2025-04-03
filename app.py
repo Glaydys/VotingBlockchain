@@ -373,6 +373,17 @@ def result(election_id):
     except Exception as e:
         return render_template("results.html", error=str(e), vote_results=[])
     
+@app.route('/getElection_client', methods=['GET'])
+def getElection_client():
+    try:
+        response = requests.get(f'http://127.0.0.1:8800/get_elections')
+        if response.status_code == 200:
+            Election_client_data = response.json()
+            return jsonify(Election_client_data), 200
+        else:
+            return jsonify({"status": "error", "message": "Failed to fetch elections"}), response.status_code
+    except Exception as e:
+        return jsonify({"status": "error", "message": str(e)}), 500
 
 if __name__ == '__main__':
     app.run(debug=True)
