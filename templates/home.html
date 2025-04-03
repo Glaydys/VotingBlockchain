@@ -58,7 +58,7 @@
             <canvas id="voteChart"></canvas> <!-- Biểu đồ cột -->
             <div class="vote-buttons">
                 <button class="vote-btn" onclick="window.location.href='/vote'">Bình Chọn Ngay</button>
-                <button class="result-btn" onclick="window.location.href='/result'">Xem Kết Quả</button>
+                <button class="result-btn" onclick="enterElectionCode()">Xem Kết Quả</button>
             </div>
         </section>
 
@@ -102,6 +102,13 @@
                 }
             }
         });
+
+        function enterElectionCode() {
+            let code = prompt("Nhập mã cuộc bầu cử:");
+            if (code) {
+                window.location.href = `/result/${encodeURIComponent(code)}`;
+            }
+        }
     </script>
 </body>
 
